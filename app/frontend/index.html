@@ -1,0 +1,216 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#102a43">
+    <title>CareFlow | Clinic Appointment Platform</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="navbar">
+    <a class="brand" href="#">
+        <span class="brand-icon">+</span>
+        CareFlow
+    </a>
+
+    <nav>
+        <a href="#home">Home</a>
+        <a href="#doctors">Doctors</a>
+        <button id="loginNav" class="btn btn-outline">Sign in</button>
+        <button id="logoutBtn" class="btn btn-primary hidden">Sign out</button>
+    </nav>
+</header>
+
+<main class="container">
+
+    <section id="home" class="hero">
+        <div class="hero-content">
+            <span class="eyebrow">YOUR HEALTH, YOUR SCHEDULE</span>
+            <h1>Healthcare appointments, made simpler.</h1>
+            <p>
+                Discover healthcare professionals and manage
+                your clinic appointments in one convenient place.
+            </p>
+            <button id="getStartedBtn" class="btn btn-primary">
+                Get started
+            </button>
+        </div>
+
+        <div class="hero-card">
+            <div class="hero-symbol">+</div>
+            <h3>CareFlow</h3>
+            <p>Simple appointment management for patients and clinics.</p>
+        </div>
+    </section>
+
+    <section id="authSection" class="panel hidden">
+        <div class="section-heading">
+            <span class="eyebrow">WELCOME TO CAREFLOW</span>
+            <h2 id="authTitle">Sign in</h2>
+            <p id="authSubtitle">Access your appointment dashboard.</p>
+        </div>
+
+        <form id="loginForm">
+            <label for="loginEmail">Email address</label>
+            <input id="loginEmail" type="email" required>
+
+            <label for="loginPassword">Password</label>
+            <input id="loginPassword" type="password" required>
+
+            <button class="btn btn-primary full-width" type="submit">
+                Sign in
+            </button>
+        </form>
+
+        <form id="registerForm" class="hidden">
+            <label for="registerName">Full name</label>
+            <input id="registerName" type="text" minlength="2"
+                   maxlength="100" required>
+
+            <label for="registerEmail">Email address</label>
+            <input id="registerEmail" type="email" required>
+
+            <label for="registerPassword">Password</label>
+            <input id="registerPassword" type="password"
+                   minlength="12" maxlength="128" required>
+
+            <button class="btn btn-primary full-width" type="submit">
+                Create patient account
+            </button>
+        </form>
+
+        <p class="auth-switch">
+            <span id="authSwitchText">Don't have an account?</span>
+            <button id="authSwitchBtn" class="text-button">
+                Register
+            </button>
+        </p>
+    </section>
+
+    <section id="dashboard" class="hidden">
+
+        <div class="dashboard-header">
+            <div>
+                <span class="eyebrow">YOUR WORKSPACE</span>
+                <h2 id="welcomeTitle">Welcome to CareFlow</h2>
+                <p id="userDetails"></p>
+            </div>
+            <span id="roleBadge" class="role-badge">PATIENT</span>
+        </div>
+
+        <div id="patientDashboard" class="hidden">
+
+            <section id="doctors" class="content-section">
+                <div class="section-heading">
+                    <span class="eyebrow">FIND A SPECIALIST</span>
+                    <h2>Available doctors</h2>
+                    <p>Browse our synthetic demonstration doctor profiles.</p>
+                </div>
+
+                <div id="doctorList" class="doctor-grid"></div>
+            </section>
+
+            <section class="content-section panel">
+                <div class="section-heading">
+                    <span class="eyebrow">BOOK AN APPOINTMENT</span>
+                    <h2>Request an appointment</h2>
+                </div>
+
+                <form id="appointmentForm">
+                    <label for="appointmentDoctor">Select doctor</label>
+                    <select id="appointmentDoctor" required>
+                        <option value="">Choose a doctor</option>
+                    </select>
+
+                    <label for="appointmentDate">Appointment date and time</label>
+                    <input id="appointmentDate" type="datetime-local" required>
+
+                    <label for="appointmentReason">Reason for appointment</label>
+                    <textarea id="appointmentReason"
+                              minlength="3" maxlength="500"
+                              required></textarea>
+
+                    <button type="submit" class="btn btn-primary">
+                        Request appointment
+                    </button>
+                </form>
+            </section>
+
+            <section class="content-section">
+                <div class="section-heading">
+                    <span class="eyebrow">YOUR BOOKINGS</span>
+                    <h2>My appointments</h2>
+                </div>
+
+                <div id="patientAppointments" class="appointment-list"></div>
+            </section>
+
+        </div>
+
+        <div id="doctorDashboard" class="hidden">
+            <section class="content-section">
+                <div class="section-heading">
+                    <span class="eyebrow">DOCTOR WORKSPACE</span>
+                    <h2>Assigned appointments</h2>
+                </div>
+                <div id="doctorAppointments" class="appointment-list"></div>
+            </section>
+        </div>
+
+        <div id="adminDashboard" class="hidden">
+
+            <section class="content-section panel">
+                <div class="section-heading">
+                    <span class="eyebrow">DOCTOR MANAGEMENT</span>
+                    <h2>Add a doctor profile</h2>
+                </div>
+
+                <form id="doctorForm">
+                    <label for="doctorName">Doctor name</label>
+                    <input id="doctorName" required>
+
+                    <label for="doctorSpecialization">Specialization</label>
+                    <input id="doctorSpecialization" required>
+
+                    <label for="doctorQualifications">Qualifications</label>
+                    <input id="doctorQualifications" required>
+
+                    <label for="doctorExperience">Experience (years)</label>
+                    <input id="doctorExperience" type="number"
+                           min="0" max="80" required>
+
+                    <label for="doctorFee">Consultation fee</label>
+                    <input id="doctorFee" type="number" min="0" required>
+
+                    <button type="submit" class="btn btn-primary">
+                        Add doctor
+                    </button>
+                </form>
+            </section>
+
+            <section class="content-section">
+                <div class="section-heading">
+                    <span class="eyebrow">ADMINISTRATION</span>
+                    <h2>All appointments</h2>
+                </div>
+                <div id="adminAppointments" class="appointment-list"></div>
+            </section>
+        </div>
+
+    </section>
+
+    <div id="message" class="message hidden" role="status"></div>
+
+</main>
+
+<footer>
+    <p>CareFlow — Demonstration clinic appointment platform.</p>
+    <p>Uses synthetic demo data only. Not for medical or emergency care.</p>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>

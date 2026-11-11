@@ -1,0 +1,369 @@
+
+:root {
+    --navy: #102a43;
+    --blue: #2563eb;
+    --blue-light: #eff6ff;
+    --background: #f4f7fb;
+    --surface: #ffffff;
+    --text: #243b53;
+    --muted: #627d98;
+    --border: #d9e2ec;
+    --green: #15803d;
+    --red: #b91c1c;
+    --radius: 14px;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    margin: 0;
+    background: var(--background);
+    color: var(--text);
+    font-family: Arial, Helvetica, sans-serif;
+    line-height: 1.6;
+}
+
+button, input, select, textarea {
+    font: inherit;
+}
+
+button {
+    cursor: pointer;
+}
+
+.navbar {
+    min-height: 76px;
+    padding: 14px 7%;
+    background: var(--surface);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--navy);
+    text-decoration: none;
+    font-size: 23px;
+    font-weight: 800;
+}
+
+.brand-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: grid;
+    place-items: center;
+    background: var(--blue);
+    color: white;
+    font-size: 27px;
+}
+
+.navbar nav {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+}
+
+.navbar nav a {
+    color: var(--text);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.container {
+    width: min(1120px, 90%);
+    margin: auto;
+}
+
+.hero {
+    margin: 42px 0;
+    padding: 65px;
+    min-height: 350px;
+    border-radius: 24px;
+    background: linear-gradient(120deg, #102a43, #1e4e79);
+    color: white;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 35px;
+}
+
+.hero-content {
+    max-width: 620px;
+}
+
+.hero h1 {
+    font-size: clamp(32px, 5vw, 52px);
+    line-height: 1.15;
+    margin: 12px 0;
+}
+
+.hero p {
+    color: #d9e8f5;
+    max-width: 540px;
+}
+
+.hero-card {
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 18px;
+    padding: 28px;
+    min-width: 210px;
+}
+
+.hero-symbol {
+    width: 60px;
+    height: 60px;
+    border-radius: 16px;
+    display: grid;
+    place-items: center;
+    background: white;
+    color: var(--blue);
+    font-size: 45px;
+    font-weight: 700;
+}
+
+.eyebrow {
+    color: var(--blue);
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+}
+
+.hero .eyebrow {
+    color: #bfdbfe;
+}
+
+.panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 30px;
+}
+
+.section-heading {
+    margin-bottom: 22px;
+}
+
+.section-heading h2,
+.dashboard-header h2 {
+    margin: 4px 0;
+    color: var(--navy);
+    font-size: 27px;
+}
+
+.section-heading p,
+.dashboard-header p {
+    color: var(--muted);
+}
+
+.content-section {
+    margin: 45px 0;
+}
+
+.btn {
+    padding: 11px 19px;
+    border: 1px solid transparent;
+    border-radius: 9px;
+    font-weight: 700;
+}
+
+.btn-primary {
+    background: var(--blue);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #1d4ed8;
+}
+
+.btn-outline {
+    background: white;
+    color: var(--blue);
+    border-color: var(--blue);
+}
+
+.full-width {
+    width: 100%;
+    margin-top: 18px;
+}
+
+form {
+    display: grid;
+    gap: 10px;
+    max-width: 600px;
+}
+
+label {
+    margin-top: 7px;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+input, select, textarea {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: white;
+    color: var(--text);
+}
+
+input:focus, select:focus, textarea:focus {
+    outline: 2px solid #bfdbfe;
+    border-color: var(--blue);
+}
+
+textarea {
+    min-height: 100px;
+    resize: vertical;
+}
+
+.auth-switch {
+    margin-top: 20px;
+    color: var(--muted);
+}
+
+.text-button {
+    background: none;
+    border: none;
+    color: var(--blue);
+    font-weight: 700;
+}
+
+.dashboard-header {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 25px;
+    margin-top: 35px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.role-badge {
+    padding: 7px 13px;
+    background: var(--blue-light);
+    color: var(--blue);
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.doctor-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 18px;
+}
+
+.doctor-card,
+.appointment-card {
+    padding: 22px;
+    border: 1px solid var(--border);
+    background: white;
+    border-radius: var(--radius);
+}
+
+.doctor-card h3,
+.appointment-card h3 {
+    color: var(--navy);
+    margin-top: 0;
+}
+
+.doctor-card p,
+.appointment-card p {
+    color: var(--muted);
+    font-size: 14px;
+}
+
+.status {
+    display: inline-block;
+    padding: 5px 10px;
+    border-radius: 20px;
+    background: var(--blue-light);
+    color: var(--blue);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.status.completed {
+    color: var(--green);
+    background: #dcfce7;
+}
+
+.status.cancelled {
+    color: var(--red);
+    background: #fee2e2;
+}
+
+.appointment-list {
+    display: grid;
+    gap: 14px;
+}
+
+.message {
+    margin: 20px 0;
+    padding: 14px 18px;
+    border-radius: 9px;
+    background: var(--blue-light);
+    color: var(--navy);
+}
+
+.message.error {
+    background: #fee2e2;
+    color: var(--red);
+}
+
+.hidden {
+    display: none !important;
+}
+
+footer {
+    margin-top: 70px;
+    padding: 25px;
+    text-align: center;
+    background: var(--navy);
+    color: white;
+    font-size: 13px;
+}
+
+@media (max-width: 700px) {
+    .navbar {
+        padding: 14px 5%;
+    }
+
+    .navbar nav {
+        gap: 10px;
+    }
+
+    .navbar nav a {
+        display: none;
+    }
+
+    .hero {
+        padding: 30px;
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .hero-card {
+        width: 100%;
+    }
+
+    .dashboard-header {
+        align-items: flex-start;
+        gap: 15px;
+        flex-direction: column;
+    }
+}
