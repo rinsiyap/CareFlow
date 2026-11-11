@@ -2,10 +2,10 @@
 import os
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 
-from careflow_api.storage import users
+from careflow_api.storage import storage, users
 from careflow_api.routers import auth, doctors, appointments
 from careflow_api.security import hash_password
 
@@ -109,9 +109,30 @@ async def liveness():
 
 @app.get("/health/ready", tags=["Health"])
 async def readiness():
+    """
+    Check whether the application and its configured storage
+    backend are ready to serve requests.
+    """
+
+    try:
+        database_health = storage.health_check()
+
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={
+                "status": "not_ready",
+                "application": "careflow-api",
+                "database": "unavailable",
+                "storage_backend": storage.backend,
+                "environment": "local",
+            },
+        )
+
     return {
         "status": "ready",
         "application": "careflow-api",
-        "database": "not_configured",
+        "database": database_health["status"],
+        "storage_backend": database_health["backend"],
         "environment": "local",
     }
