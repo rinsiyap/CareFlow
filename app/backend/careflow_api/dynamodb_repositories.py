@@ -276,7 +276,6 @@ class DynamoDBAppointmentRepository:
         self,
         appointment_id: str,
     ) -> Record | None:
-
         response = self.table.get_item(
             Key={"appointment_id": appointment_id},
             ConsistentRead=True,
@@ -295,7 +294,6 @@ class DynamoDBAppointmentRepository:
         self,
         patient_email: str,
     ) -> list[Record]:
-
         return self._query_index(
             index_name=self.PATIENT_INDEX,
             partition_key="patient_email",
@@ -306,7 +304,6 @@ class DynamoDBAppointmentRepository:
         self,
         doctor_id: str,
     ) -> list[Record]:
-
         return self._query_index(
             index_name=self.DOCTOR_INDEX,
             partition_key="doctor_id",
@@ -319,7 +316,6 @@ class DynamoDBAppointmentRepository:
         partition_key: str,
         partition_value: str,
     ) -> list[Record]:
-
         response = self.table.query(
             IndexName=index_name,
             KeyConditionExpression=(
@@ -331,10 +327,10 @@ class DynamoDBAppointmentRepository:
         records = []
 
         while True:
-            records.extend(
-                _from_dynamodb(item)
-                for item in response.get("Items", [])
-            )
+            for item in response.get("Items", []):
+                # Keep DynamoDB's internal key out of API records.
+                item.pop("appointment_id", None)
+                records.append(_from_dynamodb(item))
 
             if "LastEvaluatedKey" not in response:
                 break
@@ -375,7 +371,6 @@ class DynamoDBAppointmentRepository:
         expected_status: str,
         new_status: str,
     ) -> Record | None:
-
         try:
             response = self.table.update_item(
                 Key={
@@ -418,7 +413,6 @@ class DynamoDBDoctorAccountProvisioner:
         users_table: Any,
         doctors_table: Any,
     ) -> None:
-
         self.users_table = users_table
         self.doctors_table = doctors_table
 
@@ -430,7 +424,6 @@ class DynamoDBDoctorAccountProvisioner:
         doctor_id: str,
         user: Record,
     ) -> Record:
-
         # Validate doctor profile.
         doctor = self.doctors_table.get_item(
             Key={

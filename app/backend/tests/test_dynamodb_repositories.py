@@ -510,3 +510,170 @@ def test_provisioner_rejects_wrong_doctor_link(
             "doctor-001",
             doctor_user,
         )
+
+
+# =============================================================
+# ADDITIONAL DYNAMODB LOCAL INTEGRATION TESTS
+# These tests use the actual DynamoDB Local database.
+# =============================================================
+
+def test_local_create_and_get_user(
+    local_repositories,
+    sample_user,
+):
+    users = local_repositories["users"]
+
+    users.create_user(sample_user)
+
+    retrieved = users.get_by_email(
+        sample_user["email"]
+    )
+
+    assert retrieved == sample_user
+
+
+def test_local_duplicate_user_is_rejected(
+    local_repositories,
+    sample_user,
+):
+    users = local_repositories["users"]
+
+    users.create_user(sample_user)
+
+    with pytest.raises(ValueError, match="User already exists"):
+        users.create_user(sample_user)
+
+
+def test_local_create_and_list_available_doctors(
+    local_repositories,
+    sample_doctor,
+):
+    doctors = local_repositories["doctors"]
+
+    unavailable_doctor = {
+        **sample_doctor,
+        "id": "doctor-002",
+        "available": False,
+    }
+
+    doctors.create_doctor(sample_doctor)
+    doctors.create_doctor(unavailable_doctor)
+
+    retrieved = doctors.get_by_id("doctor-001")
+    available = doctors.list_available()
+
+    assert retrieved == sample_doctor
+    assert isinstance(retrieved["consultation_fee"], float)
+
+    assert len(available) == 1
+    assert available[0]["id"] == "doctor-001"
+
+
+def test_local_duplicate_doctor_is_rejected(
+    local_repositories,
+    sample_doctor,
+):
+    doctors = local_repositories["doctors"]
+
+    doctors.create_doctor(sample_doctor)
+
+    with pytest.raises(ValueError, match="Doctor already exists"):
+        doctors.create_doctor(sample_doctor)
+
+
+def test_local_appointment_queries_return_application_records(
+    local_repositories,
+    sample_appointment,
+):
+    appointments = local_repositories["appointments"]
+
+    second_appointment = {
+        **sample_appointment,
+        "id": "appointment-002",
+        "scheduled_at": "2026-12-02T10:00:00+00:00",
+    }
+
+    other_patient_appointment = {
+        **sample_appointment,
+        "id": "appointment-003",
+        "patient_email": "other@example.com",
+        "scheduled_at": "2026-12-03T10:00:00+00:00",
+    }
+
+    appointments.create_appointment(sample_appointment)
+    appointments.create_appointment(second_appointment)
+    appointments.create_appointment(other_patient_appointment)
+
+    # Verify direct retrieval.
+    retrieved = appointments.get_by_id("appointment-001")
+    assert retrieved == sample_appointment
+    assert "appointment_id" not in retrieved
+
+    # Verify the patient GSI.
+    patient_results = appointments.list_for_patient(
+        "patient@example.com"
+    )
+
+    assert len(patient_results) == 2
+    assert [
+        item["id"] for item in patient_results
+    ] == [
+        "appointment-001",
+        "appointment-002",
+    ]
+
+    # Verify the doctor GSI.
+    doctor_results = appointments.list_for_doctor("doctor-001")
+
+    assert len(doctor_results) == 3
+
+    # Internal DynamoDB keys must not leak into application records.
+    for record in patient_results + doctor_results:
+        assert "appointment_id" not in record
+
+
+def test_local_duplicate_appointment_is_rejected(
+    local_repositories,
+    sample_appointment,
+):
+    appointments = local_repositories["appointments"]
+
+    appointments.create_appointment(sample_appointment)
+
+    with pytest.raises(
+        ValueError,
+        match="Appointment already exists",
+    ):
+        appointments.create_appointment(sample_appointment)
+
+
+def test_local_appointment_status_transition_is_conditional(
+    local_repositories,
+    sample_appointment,
+):
+    appointments = local_repositories["appointments"]
+
+    appointments.create_appointment(sample_appointment)
+
+    # Valid transition.
+    confirmed = appointments.transition_status(
+        "appointment-001",
+        "requested",
+        "confirmed",
+    )
+
+    assert confirmed is not None
+    assert confirmed["status"] == "confirmed"
+
+    # Stale transition must not overwrite the current status.
+    stale_update = appointments.transition_status(
+        "appointment-001",
+        "requested",
+        "cancelled",
+    )
+
+    assert stale_update is None
+
+    current = appointments.get_by_id("appointment-001")
+
+    assert current["status"] == "confirmed"
