@@ -37,6 +37,8 @@ def _memory_storage() -> SimpleNamespace:
         users=users,
         doctors=doctors,
         appointments=appointments,
+        outbox=None,
+        processed_events=None,
         doctor_account_provisioner=doctor_account_provisioner,
         backend="memory",
         health_check=health_check,
@@ -82,6 +84,8 @@ def _dynamodb_storage(
         DynamoDBAppointmentRepository,
         DynamoDBDoctorAccountProvisioner,
         DynamoDBDoctorRepository,
+        DynamoDBOutboxRepository,
+        DynamoDBProcessedEventsRepository,
         DynamoDBUserRepository,
     )
     from careflow_api.dynamodb_tables import create_dynamodb_tables
@@ -93,6 +97,8 @@ def _dynamodb_storage(
                 "users": "CARE_FLOW_USERS_TABLE",
                 "doctors": "CARE_FLOW_DOCTORS_TABLE",
                 "appointments": "CARE_FLOW_APPOINTMENTS_TABLE",
+                "outbox": "CARE_FLOW_OUTBOX_TABLE",
+                "processed_events": "CARE_FLOW_PROCESSED_EVENTS_TABLE",
             }.items()
             if os.getenv(environment_variable)
         }
@@ -104,8 +110,18 @@ def _dynamodb_storage(
 
     users = DynamoDBUserRepository(tables["users"])
     doctors = DynamoDBDoctorRepository(tables["doctors"])
+
+    outbox = DynamoDBOutboxRepository(
+        tables["outbox"],
+    )
+
+    processed_events = DynamoDBProcessedEventsRepository(
+        tables["processed_events"],
+    )
+
     appointments = DynamoDBAppointmentRepository(
-        tables["appointments"]
+        tables["appointments"],
+        outbox_table=tables["outbox"],
     )
 
     doctor_account_provisioner = DynamoDBDoctorAccountProvisioner(
@@ -134,6 +150,8 @@ def _dynamodb_storage(
         users=users,
         doctors=doctors,
         appointments=appointments,
+        outbox=outbox,
+        processed_events=processed_events,
         doctor_account_provisioner=doctor_account_provisioner,
         backend="dynamodb",
         health_check=health_check,
@@ -183,6 +201,8 @@ storage = create_storage()
 users = storage.users
 doctors = storage.doctors
 appointments = storage.appointments
+outbox = storage.outbox
+processed_events = storage.processed_events
 doctor_account_provisioner = storage.doctor_account_provisioner
 
 
@@ -191,6 +211,8 @@ __all__ = [
     "users",
     "doctors",
     "appointments",
+    "outbox",
+    "processed_events",
     "doctor_account_provisioner",
     "create_storage",
 ]

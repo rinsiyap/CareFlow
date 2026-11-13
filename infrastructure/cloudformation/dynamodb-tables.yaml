@@ -1,0 +1,142 @@
+﻿AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  CareFlow DynamoDB tables for users, doctors, appointments,
+  transactional outbox events, and processed-event tracking.
+
+Parameters:
+  TableNamePrefix:
+    Type: String
+    Default: CareFlow
+    Description: Prefix used for all CareFlow DynamoDB table names.
+    AllowedPattern: '^[A-Za-z0-9_.-]+$'
+    MinLength: 1
+    MaxLength: 180
+
+Resources:
+
+  UsersTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TableName: !Sub '${TableNamePrefix}-Users'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: email
+          AttributeType: S
+      KeySchema:
+        - AttributeName: email
+          KeyType: HASH
+
+  DoctorsTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TableName: !Sub '${TableNamePrefix}-Doctors'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: doctor_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: doctor_id
+          KeyType: HASH
+
+  AppointmentsTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TableName: !Sub '${TableNamePrefix}-Appointments'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: appointment_id
+          AttributeType: S
+        - AttributeName: patient_email
+          AttributeType: S
+        - AttributeName: doctor_id
+          AttributeType: S
+        - AttributeName: scheduled_at
+          AttributeType: S
+      KeySchema:
+        - AttributeName: appointment_id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: patient_email-scheduled_at-index
+          KeySchema:
+            - AttributeName: patient_email
+              KeyType: HASH
+            - AttributeName: scheduled_at
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        - IndexName: doctor_id-scheduled_at-index
+          KeySchema:
+            - AttributeName: doctor_id
+              KeyType: HASH
+            - AttributeName: scheduled_at
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+
+  OutboxTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TableName: !Sub '${TableNamePrefix}-Outbox'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: event_id
+          AttributeType: S
+        - AttributeName: status
+          AttributeType: S
+        - AttributeName: created_at
+          AttributeType: S
+      KeySchema:
+        - AttributeName: event_id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: status-created_at-index
+          KeySchema:
+            - AttributeName: status
+              KeyType: HASH
+            - AttributeName: created_at
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+
+  ProcessedEventsTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TableName: !Sub '${TableNamePrefix}-ProcessedEvents'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: event_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: event_id
+          KeyType: HASH
+
+Outputs:
+  UsersTableName:
+    Description: CareFlow users table name
+    Value: !Ref UsersTable
+
+  DoctorsTableName:
+    Description: CareFlow doctors table name
+    Value: !Ref DoctorsTable
+
+  AppointmentsTableName:
+    Description: CareFlow appointments table name
+    Value: !Ref AppointmentsTable
+
+  OutboxTableName:
+    Description: CareFlow transactional outbox table name
+    Value: !Ref OutboxTable
+
+  ProcessedEventsTableName:
+    Description: CareFlow processed events table name
+    Value: !Ref ProcessedEventsTable

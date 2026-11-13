@@ -11,7 +11,7 @@
 <body>
 
 <header class="navbar">
-    <a class="brand" href="#">
+    <a class="brand" href="#home">
         <span class="brand-icon">+</span>
         CareFlow
     </a>
@@ -26,6 +26,7 @@
 
 <main class="container">
 
+    <!-- HOME SECTION -->
     <section id="home" class="hero">
         <div class="hero-content">
             <span class="eyebrow">YOUR HEALTH, YOUR SCHEDULE</span>
@@ -46,6 +47,20 @@
         </div>
     </section>
 
+    <!-- PUBLIC DOCTORS SECTION -->
+    <section id="doctors" class="content-section">
+        <div class="section-heading">
+            <span class="eyebrow">FIND A SPECIALIST</span>
+            <h2>Available doctors</h2>
+            <p>Browse our synthetic demonstration doctor profiles.</p>
+        </div>
+
+        <div id="doctorList" class="doctor-grid">
+            <p>Loading available doctors...</p>
+        </div>
+    </section>
+
+    <!-- AUTHENTICATION SECTION -->
     <section id="authSection" class="panel hidden">
         <div class="section-heading">
             <span class="eyebrow">WELCOME TO CAREFLOW</span>
@@ -84,12 +99,13 @@
 
         <p class="auth-switch">
             <span id="authSwitchText">Don't have an account?</span>
-            <button id="authSwitchBtn" class="text-button">
+            <button id="authSwitchBtn" class="text-button" type="button">
                 Register
             </button>
         </p>
     </section>
 
+    <!-- USER DASHBOARD -->
     <section id="dashboard" class="hidden">
 
         <div class="dashboard-header">
@@ -101,17 +117,8 @@
             <span id="roleBadge" class="role-badge">PATIENT</span>
         </div>
 
+        <!-- PATIENT DASHBOARD -->
         <div id="patientDashboard" class="hidden">
-
-            <section id="doctors" class="content-section">
-                <div class="section-heading">
-                    <span class="eyebrow">FIND A SPECIALIST</span>
-                    <h2>Available doctors</h2>
-                    <p>Browse our synthetic demonstration doctor profiles.</p>
-                </div>
-
-                <div id="doctorList" class="doctor-grid"></div>
-            </section>
 
             <section class="content-section panel">
                 <div class="section-heading">
@@ -150,18 +157,22 @@
 
         </div>
 
+        <!-- DOCTOR DASHBOARD -->
         <div id="doctorDashboard" class="hidden">
             <section class="content-section">
                 <div class="section-heading">
                     <span class="eyebrow">DOCTOR WORKSPACE</span>
                     <h2>Assigned appointments</h2>
                 </div>
+
                 <div id="doctorAppointments" class="appointment-list"></div>
             </section>
         </div>
 
+        <!-- ADMIN DASHBOARD -->
         <div id="adminDashboard" class="hidden">
 
+            <!-- ADD DOCTOR PROFILE -->
             <section class="content-section panel">
                 <div class="section-heading">
                     <span class="eyebrow">DOCTOR MANAGEMENT</span>
@@ -180,10 +191,11 @@
 
                     <label for="doctorExperience">Experience (years)</label>
                     <input id="doctorExperience" type="number"
-                           min="0" max="80" required>
+                           min="0" max="60" required>
 
                     <label for="doctorFee">Consultation fee</label>
-                    <input id="doctorFee" type="number" min="0" required>
+                    <input id="doctorFee" type="number"
+                           min="0.01" required>
 
                     <button type="submit" class="btn btn-primary">
                         Add doctor
@@ -191,17 +203,50 @@
                 </form>
             </section>
 
+            <!-- CREATE DOCTOR LOGIN ACCOUNT -->
+            <section class="content-section panel">
+                <div class="section-heading">
+                    <span class="eyebrow">DOCTOR ACCOUNT MANAGEMENT</span>
+                    <h2>Create doctor login account</h2>
+                    <p>
+                        Connect a doctor profile with login credentials.
+                    </p>
+                </div>
+
+                <form id="doctorAccountForm">
+                    <label for="accountDoctor">Select doctor</label>
+                    <select id="accountDoctor" required>
+                        <option value="">Choose a doctor</option>
+                    </select>
+
+                    <label for="accountEmail">Doctor email address</label>
+                    <input id="accountEmail" type="email" required>
+
+                    <label for="accountPassword">Temporary password</label>
+                    <input id="accountPassword" type="password"
+                           minlength="12" maxlength="128" required>
+
+                    <button type="submit" class="btn btn-primary">
+                        Create doctor account
+                    </button>
+                </form>
+            </section>
+
+            <!-- ALL APPOINTMENTS -->
             <section class="content-section">
                 <div class="section-heading">
                     <span class="eyebrow">ADMINISTRATION</span>
                     <h2>All appointments</h2>
                 </div>
+
                 <div id="adminAppointments" class="appointment-list"></div>
             </section>
+
         </div>
 
     </section>
 
+    <!-- STATUS MESSAGE -->
     <div id="message" class="message hidden" role="status"></div>
 
 </main>

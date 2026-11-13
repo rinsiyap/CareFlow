@@ -1,0 +1,57 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  CareFlow private S3 bucket for storing Lambda deployment artifacts.
+
+Resources:
+
+  LambdaArtifactBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      VersioningConfiguration:
+        Status: Enabled
+
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
+
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+
+  LambdaArtifactBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref LambdaArtifactBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: DenyInsecureTransport
+            Effect: Deny
+            Principal: '*'
+            Action:
+              - s3:*
+            Resource:
+              - !GetAtt LambdaArtifactBucket.Arn
+              - !Sub '${LambdaArtifactBucket.Arn}/*'
+            Condition:
+              Bool:
+                aws:SecureTransport: false
+
+Outputs:
+
+  LambdaArtifactBucketName:
+    Description: Name of the private Lambda artifact bucket.
+    Value: !Ref LambdaArtifactBucket
+
+  LambdaArtifactBucketArn:
+    Description: ARN of the private Lambda artifact bucket.
+    Value: !GetAtt LambdaArtifactBucket.Arn

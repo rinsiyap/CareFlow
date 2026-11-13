@@ -1,6 +1,16 @@
 ﻿
 import os
 from contextlib import asynccontextmanager
+from pathlib import Path
+
+from dotenv import load_dotenv
+
+# Load the project-root .env before importing storage.
+# main.py is located in app/backend/careflow_api/.
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
+ENV_FILE = PROJECT_ROOT / ".env"
+
+load_dotenv(dotenv_path=ENV_FILE, override=False)
 
 from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -13,15 +23,24 @@ from careflow_api.security import hash_password
 def bootstrap_admin() -> None:
     """Create the local development admin from environment variables."""
 
-    email = os.getenv("CARE_FLOW_BOOTSTRAP_ADMIN_EMAIL", "").strip().lower()
-    password = os.getenv("CARE_FLOW_BOOTSTRAP_ADMIN_PASSWORD", "")
-    full_name = os.getenv("CARE_FLOW_BOOTSTRAP_ADMIN_NAME", "").strip()
+    email = os.getenv(
+        "CARE_FLOW_BOOTSTRAP_ADMIN_EMAIL", ""
+    ).strip().lower()
 
-    # Bootstrap is optional. The API can start without an admin configured.
+    password = os.getenv(
+        "CARE_FLOW_BOOTSTRAP_ADMIN_PASSWORD", ""
+    )
+
+    full_name = os.getenv(
+        "CARE_FLOW_BOOTSTRAP_ADMIN_NAME", ""
+    ).strip()
+
+    # Bootstrap is optional.
     if not email and not password and not full_name:
+        print("Admin bootstrap skipped: credentials not configured.")
         return
 
-    # Do not accept partially configured bootstrap credentials.
+    # Reject incomplete configuration.
     if not email or not password or not full_name:
         raise RuntimeError(
             "Admin bootstrap requires CARE_FLOW_BOOTSTRAP_ADMIN_EMAIL, "
@@ -34,7 +53,7 @@ def bootstrap_admin() -> None:
             "The bootstrap admin password must contain at least 12 characters."
         )
 
-    # Retrieve the account using the domain-specific repository.
+    # Check whether the admin already exists.
     existing_user = users.get_by_email(email)
 
     if existing_user:
@@ -43,8 +62,11 @@ def bootstrap_admin() -> None:
                 "The configured bootstrap admin email already belongs "
                 "to a non-admin account."
             )
+
+        print(f"Admin account already exists: {email}")
         return
 
+    # Create the admin account.
     admin_user = {
         "full_name": full_name,
         "email": email,
@@ -52,7 +74,6 @@ def bootstrap_admin() -> None:
         "role": "admin",
     }
 
-    # Create the admin through the repository contract.
     users.create_user(admin_user)
 
     print(f"Local development admin bootstrapped: {email}")
@@ -78,10 +99,22 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5500", "http://127.0.0.1:5500"],
+    allow_origins=[
+        "http://localhost:5500",
+        "http://127.0.0.1:5500",
+    ],
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
-    allow_headers=["Authorization", "Content-Type"],
+    allow_methods=[
+        "GET",
+        "POST",
+        "PUT",
+        "PATCH",
+        "DELETE",
+    ],
+    allow_headers=[
+        "Authorization",
+        "Content-Type",
+    ],
 )
 
 app.include_router(auth.router)
@@ -109,10 +142,7 @@ async def liveness():
 
 @app.get("/health/ready", tags=["Health"])
 async def readiness():
-    """
-    Check whether the application and its configured storage
-    backend are ready to serve requests.
-    """
+    """Check whether the application and storage are ready."""
 
     try:
         database_health = storage.health_check()

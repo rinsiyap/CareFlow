@@ -1,0 +1,33 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      CARE_FLOW_STORAGE_BACKEND: dynamodb
+      CARE_FLOW_DYNAMODB_ENDPOINT_URL: http://host.docker.internal:8002
+      AWS_DEFAULT_REGION: us-east-2
+      AWS_ACCESS_KEY_ID: local
+      AWS_SECRET_ACCESS_KEY: local
+      CARE_FLOW_USERS_TABLE: CareFlow-Docker-Users
+      CARE_FLOW_DOCTORS_TABLE: CareFlow-Docker-Doctors
+      CARE_FLOW_APPOINTMENTS_TABLE: CareFlow-Docker-Appointments
+      CARE_FLOW_OUTBOX_TABLE: CareFlow-Docker-Outbox
+      CARE_FLOW_PROCESSED_EVENTS_TABLE: CareFlow-Docker-ProcessedEvents
+      CARE_FLOW_BOOTSTRAP_ADMIN_NAME: CareFlow Administrator
+      CARE_FLOW_BOOTSTRAP_ADMIN_EMAIL: admin@careflow.local
+      CARE_FLOW_BOOTSTRAP_ADMIN_PASSWORD: ${CARE_FLOW_BOOTSTRAP_ADMIN_PASSWORD:?Set this variable in your PowerShell session}
+      CARE_FLOW_JWT_SECRET: ${CARE_FLOW_JWT_SECRET:?Set this variable in your PowerShell session}
+    expose:
+      - "8000"
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./app/frontend
+      dockerfile: Dockerfile
+    ports:
+      - "127.0.0.1:8080:80"
+    depends_on:
+      - backend
+    restart: unless-stopped

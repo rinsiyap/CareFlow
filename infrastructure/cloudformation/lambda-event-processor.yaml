@@ -1,0 +1,137 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  CareFlow Lambda event processor with least-privilege access to
+  the processed-events DynamoDB table and the SQS events queue.
+
+Parameters:
+
+  FunctionNamePrefix:
+    Type: String
+    Default: CareFlow
+    Description: Prefix used for the Lambda function name.
+    AllowedPattern: '^[A-Za-z0-9_-]+$'
+    MinLength: 1
+    MaxLength: 45
+
+  ArtifactBucket:
+    Type: String
+    Description: Existing S3 bucket containing the Lambda deployment ZIP.
+    MinLength: 3
+    MaxLength: 63
+
+  ArtifactKey:
+    Type: String
+    Default: careflow-lambda-20261113.zip
+    Description: S3 object key for the Lambda deployment ZIP.
+    MinLength: 1
+
+  ProcessedEventsTableName:
+    Type: String
+    Default: CareFlow-ProcessedEvents
+    Description: Existing DynamoDB processed-events table name.
+    MinLength: 3
+
+  EventsQueueArn:
+    Type: String
+    Description: ARN of the existing CareFlow SQS events queue.
+    AllowedPattern: '^arn:[^:]+:sqs:[^:]+:[0-9]{12}:.+$'
+
+Resources:
+
+  EventProcessorRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Description: Execution role for the CareFlow Lambda event processor.
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+
+      Policies:
+        - PolicyName: CareFlowEventProcessorPermissions
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+
+              - Sid: ProcessedEventsTableAccess
+                Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:UpdateItem
+                Resource:
+                  - !Sub
+                    'arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${ProcessedEventsTableName}'
+
+              - Sid: SQSQueuePolling
+                Effect: Allow
+                Action:
+                  - sqs:ReceiveMessage
+                  - sqs:DeleteMessage
+                  - sqs:GetQueueAttributes
+                Resource:
+                  - !Ref EventsQueueArn
+
+              - Sid: CreateLambdaLogGroup
+                Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                Resource: '*'
+
+              - Sid: WriteLambdaLogs
+                Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource:
+                  - !Sub
+                    'arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${FunctionNamePrefix}-EventProcessor:*'
+
+  EventProcessorFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub '${FunctionNamePrefix}-EventProcessor'
+      Description: Processes CareFlow appointment events from SQS.
+      Runtime: python3.12
+      Handler: careflow_api.lambda_handler.lambda_handler
+      Role: !GetAtt EventProcessorRole.Arn
+      Code:
+        S3Bucket: !Ref ArtifactBucket
+        S3Key: !Ref ArtifactKey
+      Timeout: 60
+      MemorySize: 256
+      Environment:
+        Variables:
+          CARE_FLOW_PROCESSED_EVENTS_TABLE: !Ref ProcessedEventsTableName
+
+  EventsQueueMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      Enabled: true
+      EventSourceArn: !Ref EventsQueueArn
+      FunctionName: !Ref EventProcessorFunction
+      BatchSize: 10
+      FunctionResponseTypes:
+        - ReportBatchItemFailures
+
+Outputs:
+
+  EventProcessorFunctionName:
+    Description: CareFlow Lambda function name.
+    Value: !Ref EventProcessorFunction
+
+  EventProcessorFunctionArn:
+    Description: CareFlow Lambda function ARN.
+    Value: !GetAtt EventProcessorFunction.Arn
+
+  EventProcessorRoleArn:
+    Description: Lambda execution role ARN.
+    Value: !GetAtt EventProcessorRole.Arn
+
+  EventsQueueMappingUUID:
+    Description: SQS event source mapping identifier.
+    Value: !Ref EventsQueueMapping

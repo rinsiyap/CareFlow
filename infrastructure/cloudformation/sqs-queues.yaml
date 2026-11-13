@@ -1,0 +1,60 @@
+﻿AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  CareFlow SQS event queue and dead-letter queue for
+  asynchronous appointment event processing.
+
+Parameters:
+  QueueNamePrefix:
+    Type: String
+    Default: CareFlow
+    Description: Prefix used for CareFlow SQS queue names.
+    AllowedPattern: '^[A-Za-z0-9_-]+$'
+    MinLength: 1
+    MaxLength: 60
+
+Resources:
+
+  EventsDeadLetterQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub '${QueueNamePrefix}-Events-DLQ'
+      MessageRetentionPeriod: 1209600
+      SqsManagedSseEnabled: true
+
+  EventsQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub '${QueueNamePrefix}-Events'
+      VisibilityTimeout: 360
+      MessageRetentionPeriod: 345600
+      ReceiveMessageWaitTimeSeconds: 20
+      SqsManagedSseEnabled: true
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt EventsDeadLetterQueue.Arn
+        maxReceiveCount: 5
+
+Outputs:
+
+  EventsQueueName:
+    Description: CareFlow main SQS queue name
+    Value: !GetAtt EventsQueue.QueueName
+
+  EventsQueueUrl:
+    Description: CareFlow main SQS queue URL
+    Value: !Ref EventsQueue
+
+  EventsQueueArn:
+    Description: CareFlow main SQS queue ARN
+    Value: !GetAtt EventsQueue.Arn
+
+  EventsDeadLetterQueueName:
+    Description: CareFlow dead-letter queue name
+    Value: !GetAtt EventsDeadLetterQueue.QueueName
+
+  EventsDeadLetterQueueUrl:
+    Description: CareFlow dead-letter queue URL
+    Value: !Ref EventsDeadLetterQueue
+
+  EventsDeadLetterQueueArn:
+    Description: CareFlow dead-letter queue ARN
+    Value: !GetAtt EventsDeadLetterQueue.Arn

@@ -10,8 +10,10 @@ from careflow_api.dynamodb_repositories import (
     DynamoDBAppointmentRepository,
     DynamoDBDoctorAccountProvisioner,
     DynamoDBDoctorRepository,
+    DynamoDBOutboxRepository,
     DynamoDBUserRepository,
 )
+from careflow_api.event_processor import create_event_processor
 
 
 # =============================================================
@@ -35,7 +37,11 @@ def repositories():
             "users": DynamoDBUserRepository(tables["users"]),
             "doctors": DynamoDBDoctorRepository(tables["doctors"]),
             "appointments": DynamoDBAppointmentRepository(
-                tables["appointments"]
+                tables["appointments"],
+                outbox_table=tables["outbox"],
+            ),
+            "outbox": DynamoDBOutboxRepository(
+                tables["outbox"],
             ),
             "provisioner": DynamoDBDoctorAccountProvisioner(
                 tables["users"],
@@ -71,6 +77,7 @@ def local_repositories():
             "users": f"CareFlow-Test-Users-{suffix}",
             "doctors": f"CareFlow-Test-Doctors-{suffix}",
             "appointments": f"CareFlow-Test-Appointments-{suffix}",
+            "outbox": f"CareFlow-Test-Outbox-{suffix}",
         },
     )
 
@@ -79,7 +86,11 @@ def local_repositories():
             "users": DynamoDBUserRepository(tables["users"]),
             "doctors": DynamoDBDoctorRepository(tables["doctors"]),
             "appointments": DynamoDBAppointmentRepository(
-                tables["appointments"]
+                tables["appointments"],
+                outbox_table=tables["outbox"],
+            ),
+            "outbox": DynamoDBOutboxRepository(
+                tables["outbox"],
             ),
             "provisioner": DynamoDBDoctorAccountProvisioner(
                 tables["users"],
@@ -372,6 +383,200 @@ def test_transition_for_missing_appointment_returns_none(
 
 
 # =============================================================
+# TRANSACTIONAL APPOINTMENT + OUTBOX TESTS (MOTO)
+# =============================================================
+
+def test_appointment_creation_writes_outbox_event(
+    repositories,
+    sample_appointment,
+):
+    appointments = repositories["appointments"]
+    outbox = repositories["outbox"]
+
+    created = appointments.create_appointment(sample_appointment)
+
+    assert created == sample_appointment
+
+    events = outbox.list_pending()
+
+    assert len(events) == 1
+
+    event = events[0]
+
+    assert event["event_type"] == "appointment.created"
+    assert event["aggregate_type"] == "appointment"
+    assert event["aggregate_id"] == "appointment-001"
+    assert event["status"] == "pending"
+    assert event["payload"]["appointment_id"] == "appointment-001"
+    assert event["payload"]["patient_email"] == "patient@example.com"
+    assert event["payload"]["doctor_id"] == "doctor-001"
+
+
+def test_duplicate_appointment_does_not_create_extra_outbox_event(
+    repositories,
+    sample_appointment,
+):
+    appointments = repositories["appointments"]
+    outbox = repositories["outbox"]
+
+    appointments.create_appointment(sample_appointment)
+
+    with pytest.raises(ValueError, match="Appointment already exists"):
+        appointments.create_appointment(sample_appointment)
+
+    events = outbox.list_pending()
+
+    assert len(events) == 1
+    assert events[0]["event_type"] == "appointment.created"
+
+
+def test_status_transition_writes_outbox_event(
+    repositories,
+    sample_appointment,
+):
+    appointments = repositories["appointments"]
+    outbox = repositories["outbox"]
+
+    appointments.create_appointment(sample_appointment)
+
+    updated = appointments.transition_status(
+        "appointment-001",
+        "requested",
+        "confirmed",
+    )
+
+    assert updated is not None
+    assert updated["status"] == "confirmed"
+
+    events = outbox.list_pending()
+
+    assert len(events) == 2
+
+    status_events = [
+        event
+        for event in events
+        if event["event_type"] == "appointment.status_changed"
+    ]
+
+    assert len(status_events) == 1
+
+    event = status_events[0]
+
+    assert event["aggregate_id"] == "appointment-001"
+    assert event["status"] == "pending"
+    assert event["payload"]["previous_status"] == "requested"
+    assert event["payload"]["new_status"] == "confirmed"
+
+
+def test_created_outbox_event_is_accepted_by_event_processor(
+    repositories,
+    sample_appointment,
+):
+    appointments = repositories["appointments"]
+    outbox = repositories["outbox"]
+    processor = create_event_processor()
+
+    appointments.create_appointment(sample_appointment)
+
+    events = outbox.list_pending()
+
+    assert len(events) == 1
+
+    event = events[0]
+
+    assert event["event_type"] == "appointment.created"
+
+    # Validate the actual repository-generated event.
+    result = processor(
+        event,
+        event["event_id"],
+    )
+
+    assert result is None
+
+
+def test_status_changed_outbox_event_is_accepted_by_event_processor(
+    repositories,
+    sample_appointment,
+):
+    appointments = repositories["appointments"]
+    outbox = repositories["outbox"]
+    processor = create_event_processor()
+
+    appointments.create_appointment(sample_appointment)
+
+    updated = appointments.transition_status(
+        "appointment-001",
+        "requested",
+        "confirmed",
+    )
+
+    assert updated is not None
+
+    events = outbox.list_pending()
+
+    status_events = [
+        event
+        for event in events
+        if event["event_type"] == "appointment.status_changed"
+    ]
+
+    assert len(status_events) == 1
+
+    event = status_events[0]
+
+    # Validate the actual repository-generated event.
+    result = processor(
+        event,
+        event["event_id"],
+    )
+
+    assert result is None
+
+
+def test_stale_transition_does_not_create_outbox_event(
+    repositories,
+    sample_appointment,
+):
+    appointments = repositories["appointments"]
+    outbox = repositories["outbox"]
+
+    appointments.create_appointment(sample_appointment)
+
+    updated = appointments.transition_status(
+        "appointment-001",
+        "confirmed",
+        "completed",
+    )
+
+    assert updated is None
+
+    events = outbox.list_pending()
+
+    assert len(events) == 1
+    assert events[0]["event_type"] == "appointment.created"
+
+    current = appointments.get_by_id("appointment-001")
+    assert current["status"] == "requested"
+
+
+def test_missing_appointment_transition_does_not_create_outbox_event(
+    repositories,
+):
+    appointments = repositories["appointments"]
+    outbox = repositories["outbox"]
+
+    updated = appointments.transition_status(
+        "missing-appointment",
+        "requested",
+        "confirmed",
+    )
+
+    assert updated is None
+    assert outbox.list_pending() == []
+
+
+# =============================================================
 # DOCTOR ACCOUNT PROVISIONER
 # =============================================================
 
@@ -513,7 +718,7 @@ def test_provisioner_rejects_wrong_doctor_link(
 
 
 # =============================================================
-# ADDITIONAL DYNAMODB LOCAL INTEGRATION TESTS
+# DYNAMODB LOCAL INTEGRATION TESTS
 # These tests use the actual DynamoDB Local database.
 # =============================================================
 
@@ -645,6 +850,135 @@ def test_local_duplicate_appointment_is_rejected(
         match="Appointment already exists",
     ):
         appointments.create_appointment(sample_appointment)
+
+
+# =============================================================
+# TRANSACTIONAL APPOINTMENT + OUTBOX TESTS (DYNAMODB LOCAL)
+# =============================================================
+
+def test_local_appointment_creation_writes_outbox_event(
+    local_repositories,
+    sample_appointment,
+):
+    appointments = local_repositories["appointments"]
+    outbox = local_repositories["outbox"]
+
+    created = appointments.create_appointment(sample_appointment)
+
+    assert created == sample_appointment
+
+    events = outbox.list_pending()
+
+    assert len(events) == 1
+
+    event = events[0]
+
+    assert event["event_type"] == "appointment.created"
+    assert event["aggregate_type"] == "appointment"
+    assert event["aggregate_id"] == "appointment-001"
+    assert event["status"] == "pending"
+    assert event["payload"]["appointment_id"] == "appointment-001"
+
+
+def test_local_duplicate_appointment_does_not_create_extra_event(
+    local_repositories,
+    sample_appointment,
+):
+    appointments = local_repositories["appointments"]
+    outbox = local_repositories["outbox"]
+
+    appointments.create_appointment(sample_appointment)
+
+    with pytest.raises(
+        ValueError,
+        match="Appointment already exists",
+    ):
+        appointments.create_appointment(sample_appointment)
+
+    events = outbox.list_pending()
+
+    assert len(events) == 1
+    assert events[0]["event_type"] == "appointment.created"
+
+
+def test_local_status_transition_writes_outbox_event(
+    local_repositories,
+    sample_appointment,
+):
+    appointments = local_repositories["appointments"]
+    outbox = local_repositories["outbox"]
+
+    appointments.create_appointment(sample_appointment)
+
+    updated = appointments.transition_status(
+        "appointment-001",
+        "requested",
+        "confirmed",
+    )
+
+    assert updated is not None
+    assert updated["status"] == "confirmed"
+
+    events = outbox.list_pending()
+
+    assert len(events) == 2
+
+    status_events = [
+        event
+        for event in events
+        if event["event_type"] == "appointment.status_changed"
+    ]
+
+    assert len(status_events) == 1
+
+    event = status_events[0]
+
+    assert event["aggregate_id"] == "appointment-001"
+    assert event["status"] == "pending"
+    assert event["payload"]["previous_status"] == "requested"
+    assert event["payload"]["new_status"] == "confirmed"
+
+
+def test_local_stale_transition_does_not_create_outbox_event(
+    local_repositories,
+    sample_appointment,
+):
+    appointments = local_repositories["appointments"]
+    outbox = local_repositories["outbox"]
+
+    appointments.create_appointment(sample_appointment)
+
+    updated = appointments.transition_status(
+        "appointment-001",
+        "confirmed",
+        "completed",
+    )
+
+    assert updated is None
+
+    events = outbox.list_pending()
+
+    assert len(events) == 1
+    assert events[0]["event_type"] == "appointment.created"
+
+    current = appointments.get_by_id("appointment-001")
+    assert current["status"] == "requested"
+
+
+def test_local_missing_appointment_transition_does_not_create_event(
+    local_repositories,
+):
+    appointments = local_repositories["appointments"]
+    outbox = local_repositories["outbox"]
+
+    updated = appointments.transition_status(
+        "missing-appointment",
+        "requested",
+        "confirmed",
+    )
+
+    assert updated is None
+    assert outbox.list_pending() == []
 
 
 def test_local_appointment_status_transition_is_conditional(
