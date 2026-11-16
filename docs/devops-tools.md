@@ -36,9 +36,9 @@ The project prioritizes free and open-source tools wherever practical.
 
 | 7 | AWS CLI | AWS command-line management | Installed and used |
 
-| 8 | GitHub Actions | CI/CD automation | Planned |
+| 8 | GitHub Actions | CI and security automation | Workflows implemented and tested |
 
-| 9 | Trivy | Container and dependency vulnerability scanning | Planned |
+| 9 | Trivy | Container image, configuration and filesystem scanning | Security workflow implemented |
 
 | 10 | Ansible | Configuration management | Planned |
 
@@ -46,9 +46,9 @@ The project prioritizes free and open-source tools wherever practical.
 
 | 12 | Helm | Kubernetes application packaging | Planned |
 
-| 13 | Prometheus | Metrics collection | Planned |
+| 13 | Prometheus | Metrics collection and health probe metrics | Implemented locally |
 
-| 14 | Grafana | Monitoring dashboards | Planned |
+| 14 | Grafana | Monitoring dashboards | Implemented locally |
 
 | 15 | Loki | Log aggregation | Planned |
 
@@ -72,7 +72,7 @@ The project prioritizes free and open-source tools wherever practical.
 
 6\. Verify application health and role-based workflows.
 
-7\. Introduce automated CI/CD and security scanning.
+7. Run GitHub Actions CI and security workflows.
 
 8\. Deploy to AWS after reviewing cost, security, and infrastructure requirements.
 
@@ -90,7 +90,7 @@ The project prioritizes free and open-source tools wherever practical.
 
 \- Git diff checks help identify whitespace errors.
 
-\- Trivy is planned for vulnerability scanning.
+\- Trivy is used in the GitHub Actions security workflow for container and configuration scanning.
 
 
 
@@ -98,15 +98,15 @@ The project prioritizes free and open-source tools wherever practical.
 
 
 
-The planned monitoring stack includes:
+The local monitoring stack includes:
 
 
 
-\- Prometheus for metrics collection.
+\- Prometheus for metrics collection and backend probe metrics.
 
-\- Grafana for dashboards.
+\- Grafana for dashboards and backend health visualization.
 
-\- Loki for centralized log aggregation.
+\- Loki for centralized log aggregation; not implemented.
 
 \- Amazon CloudWatch for AWS Lambda log inspection; additional metrics and alarms remain optional.
 
@@ -116,7 +116,7 @@ The planned monitoring stack includes:
 
 
 
-GitHub Actions is planned for automated testing and build workflows.
+GitHub Actions runs the configured CI and security workflows for automated checks.
 
 
 
@@ -128,7 +128,7 @@ Ansible remains planned for configuration management. CloudFormation has been us
 
 
 
-Docker-based application execution, backend tests, local integration workflows, AWS deployment, and CloudFormation infrastructure provisioning have been implemented and verified. CI/CD, Kubernetes, vulnerability scanning, Ansible, and the Prometheus/Grafana/Loki monitoring stack remain planned activities.
+Docker-based application execution, backend tests, local integration workflows, AWS deployment, and CloudFormation infrastructure provisioning have been implemented and verified. GitHub Actions workflows, Trivy security scanning, and local Prometheus/Grafana/Blackbox Exporter monitoring have been implemented. Kubernetes, Ansible, and Loki remain planned.
 
 
 
