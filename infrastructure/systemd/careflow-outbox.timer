@@ -1,0 +1,11 @@
+[Unit]
+Description=Run the CareFlow outbox dispatcher periodically
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=1min
+Persistent=true
+Unit=careflow-outbox.service
+
+[Install]
+WantedBy=timers.target

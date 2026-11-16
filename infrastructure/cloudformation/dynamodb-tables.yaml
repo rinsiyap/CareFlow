@@ -1,4 +1,4 @@
-﻿AWSTemplateFormatVersion: '2010-09-09'
+AWSTemplateFormatVersion: '2010-09-09'
 Description: >
   CareFlow DynamoDB tables for users, doctors, appointments,
   transactional outbox events, and processed-event tracking.

@@ -1,0 +1,11 @@
+[Unit]
+Description=Dispatch CareFlow outbox events to SQS
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/careflow
+ExecStart=/usr/bin/docker compose --project-directory /opt/careflow -f /opt/careflow/compose.aws.yaml --profile worker run --rm outbox-worker
+TimeoutStartSec=300

@@ -124,7 +124,7 @@ The frontend communicates with the FastAPI backend through Apache reverse proxy 
 
 ### Database
 
-\- Amazon DynamoDB is the planned cloud database.
+\- Amazon DynamoDB is the deployed cloud database. DynamoDB Local is used for local development and testing.
 
 \- DynamoDB Local is used for local development and testing.
 
@@ -210,7 +210,7 @@ DynamoDB Local runs separately and provides local database storage for the conta
 
 | Lambda consumer logic | Implemented and locally tested |
 
-| AWS cloud deployment | Planned |
+| AWS cloud deployment | Deployed and verified |
 
 
 
@@ -218,7 +218,7 @@ DynamoDB Local runs separately and provides local database storage for the conta
 
 
 
-The current project has been tested locally using Docker and DynamoDB Local. AWS infrastructure and managed services have not yet been deployed. Cloud deployment, monitoring, and production security configuration remain future work.
+The application has been deployed on AWS using EC2, Docker Compose, DynamoDB, SQS, Lambda, S3, and supporting infrastructure. The deployment and asynchronous event-processing flow have been verified. Production monitoring, security hardening, and operational readiness remain future work.
 
 
 

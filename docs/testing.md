@@ -242,7 +242,7 @@ The latest recorded full backend test run completed with 224 passed tests and 1 
 
 
 
-This result reflects local testing, not a production AWS deployment.
+This result reflects the local backend test suite. AWS deployment verification was performed separately.
 
 
 
@@ -250,9 +250,9 @@ This result reflects local testing, not a production AWS deployment.
 
 
 
-\- AWS cloud deployment testing has not yet been performed.
+\- Production load, penetration, and disaster-recovery testing have not been performed.
 
-\- Actual AWS SQS and Lambda resources have not been deployed.
+\- AWS SQS and Lambda resources are deployed; the appointment event-processing flow was verified, but comprehensive production testing remains outstanding.
 
 \- Production load, penetration, and disaster-recovery testing remain future work.
 

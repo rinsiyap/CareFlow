@@ -1,0 +1,149 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: CareFlow EC2 application host with Session Manager access and least-privilege AWS permissions.
+
+Parameters:
+  LatestAmiId:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64
+  InstanceType:
+    Type: String
+    Default: t3.micro
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+  SubnetId:
+    Type: AWS::EC2::Subnet::Id
+  TableNamePrefix:
+    Type: String
+    Default: CareFlow
+  EventsQueueArn:
+    Type: String
+
+Resources:
+  CareFlowInstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Description: CareFlow EC2 application and SSM role.
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+      Policies:
+        - PolicyName: CareFlowApplicationAccess
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: DynamoDBTableDiscovery
+                Effect: Allow
+                Action:
+                  - dynamodb:ListTables
+                Resource: "*"
+              - Sid: DescribeCareFlowTables
+                Effect: Allow
+                Action:
+                  - dynamodb:DescribeTable
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${TableNamePrefix}-Users"
+                  - !Sub "arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${TableNamePrefix}-Doctors"
+                  - !Sub "arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${TableNamePrefix}-Appointments"
+                  - !Sub "arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${TableNamePrefix}-Outbox"
+                  - !Sub "arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${TableNamePrefix}-ProcessedEvents"
+              - Sid: CareFlowDataAccess
+                Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:PutItem
+                  - dynamodb:UpdateItem
+                  - dynamodb:DeleteItem
+                  - dynamodb:Query
+                  - dynamodb:Scan
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${TableNamePrefix}-Users"
+                  - !Sub "arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${TableNamePrefix}-Doctors"
+                  - !Sub "arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${TableNamePrefix}-Appointments"
+                  - !Sub "arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${TableNamePrefix}-Appointments/index/*"
+                  - !Sub "arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${TableNamePrefix}-Outbox"
+                  - !Sub "arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${TableNamePrefix}-Outbox/index/*"
+              - Sid: SendCareFlowEvents
+                Effect: Allow
+                Action:
+                  - sqs:SendMessage
+                Resource: !Ref EventsQueueArn
+
+  CareFlowInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - !Ref CareFlowInstanceRole
+
+  CareFlowSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: HTTP frontend; administration through Session Manager.
+      VpcId: !Ref VpcId
+      Tags:
+        - Key: Name
+          Value: CareFlow-Web-SG
+        - Key: Project
+          Value: CareFlow
+
+  CareFlowInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Ref LatestAmiId
+      InstanceType: !Ref InstanceType
+      IamInstanceProfile: !Ref CareFlowInstanceProfile
+      NetworkInterfaces:
+        - DeviceIndex: "0"
+          AssociatePublicIpAddress: true
+          SubnetId: !Ref SubnetId
+          GroupSet:
+            - !Ref CareFlowSecurityGroup
+      MetadataOptions:
+        HttpEndpoint: enabled
+        HttpTokens: required
+        HttpPutResponseHopLimit: 1
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: 20
+            VolumeType: gp3
+            Encrypted: true
+            DeleteOnTermination: true
+      UserData:
+        Fn::Base64: |
+          #!/bin/bash
+          set -eux
+          dnf install -y docker git
+          systemctl enable --now docker
+          usermod -aG docker ec2-user
+          systemctl enable --now amazon-ssm-agent || true
+      Tags:
+        - Key: Name
+          Value: CareFlow-Application-Host
+        - Key: Project
+          Value: CareFlow
+
+Outputs:
+  InstanceId:
+    Description: EC2 instance ID.
+    Value: !Ref CareFlowInstance
+  InstancePublicIp:
+    Description: Public IPv4 address; usage may incur charges.
+    Value: !GetAtt CareFlowInstance.PublicIp
+  InstancePublicDns:
+    Description: Public DNS name.
+    Value: !GetAtt CareFlowInstance.PublicDnsName
+  ApplicationUrl:
+    Description: HTTP frontend URL after application deployment.
+    Value: !Ref CareFlowInstance
+  InstanceRoleArn:
+    Description: EC2 instance role ARN.
+    Value: !GetAtt CareFlowInstanceRole.Arn
+  SecurityGroupId:
+    Description: EC2 security group ID.
+    Value: !Ref CareFlowSecurityGroup

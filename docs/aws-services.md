@@ -10,7 +10,7 @@ CareFlow is designed to use AWS infrastructure for hosting, storage, event proce
 
 
 
-The project targets 12 AWS services. The current implementation has been tested locally; AWS cloud deployment remains future work.
+The project documents 12 AWS services. Core infrastructure and application services have been deployed in us-east-2; optional services remain planned.
 
 
 
@@ -22,29 +22,29 @@ The project targets 12 AWS services. The current implementation has been tested 
 
 |---|---|---|---|
 
-| 1 | Amazon EC2 | Host the containerized application | Planned |
+| 1 | Amazon EC2 | Host the containerized application | Deployed and running |
 
-| 2 | Amazon VPC | Provide network isolation | Planned |
+| 2 | Amazon VPC | Provide network isolation | Deployed |
 
-| 3 | Amazon S3 | Store static assets and project files | Planned |
+| 3 | Amazon S3 | Store the Lambda deployment artifact in a private bucket | Deployed |
 
-| 4 | Amazon DynamoDB | Store users, doctors, appointments, and events | Local implementation tested |
+| 4 | Amazon DynamoDB | Store users, doctors, appointments, and events | Deployed and integrated |
 
-| 5 | Amazon SQS | Queue appointment events | Local dispatcher logic tested |
+| 5 | Amazon SQS | Queue appointment events | Deployed and verified |
 
-| 6 | AWS Lambda | Process queued events | Local handler logic tested |
+| 6 | AWS Lambda | Process queued events | Deployed and verified |
 
 | 7 | Amazon SNS | Send event notifications | Planned |
 
 | 8 | Amazon EventBridge | Support event routing and integration | Planned |
 
-| 9 | Amazon CloudWatch | Collect logs, metrics, and alarms | Planned |
+| 9 | Amazon CloudWatch | Collect logs, metrics, and alarms | Lambda logs verified; additional monitoring optional |
 
 | 10 | AWS CloudTrail | Record account and API activity | Planned |
 
-| 11 | AWS Systems Manager | Support instance administration and configuration | Planned |
+| 11 | AWS Systems Manager | Support instance administration and configuration | Used for secure instance access |
 
-| 12 | AWS CloudFormation | Automate infrastructure provisioning | Planned |
+| 12 | AWS CloudFormation | Automate infrastructure provisioning | Used; five stacks deployed |
 
 
 
@@ -88,7 +88,7 @@ The following components have local implementations:
 
 
 
-These tests do not mean that actual AWS resources have been deployed.
+The tests above describe local implementation and test coverage. AWS resources were deployed separately, and the cloud appointment event-processing flow was verified.
 
 
 
@@ -118,7 +118,7 @@ Before deploying any service:
 
 
 
-No AWS cloud infrastructure has been deployed as part of the current implementation. CloudFormation templates and cloud deployment steps are planned future work.
+AWS infrastructure has been deployed in us-east-2 using five CloudFormation stacks covering DynamoDB, SQS, the Lambda artifact bucket, Lambda processing, and the EC2 application host. SNS, EventBridge, and a dedicated CloudTrail configuration have not been deployed.
 
 
 

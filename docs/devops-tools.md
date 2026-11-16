@@ -34,7 +34,7 @@ The project prioritizes free and open-source tools wherever practical.
 
 | 6 | Apache HTTP Server | Frontend hosting and reverse proxy | Implemented and tested |
 
-| 7 | AWS CLI | AWS command-line management | Installed |
+| 7 | AWS CLI | AWS command-line management | Installed and used |
 
 | 8 | GitHub Actions | CI/CD automation | Planned |
 
@@ -52,7 +52,7 @@ The project prioritizes free and open-source tools wherever practical.
 
 | 15 | Loki | Log aggregation | Planned |
 
-| 16 | CloudFormation | AWS infrastructure as code | Planned |
+| 16 | CloudFormation | AWS infrastructure as code | Used; five stacks deployed |
 
 
 
@@ -108,7 +108,7 @@ The planned monitoring stack includes:
 
 \- Loki for centralized log aggregation.
 
-\- Amazon CloudWatch for AWS-side monitoring after cloud deployment.
+\- Amazon CloudWatch for AWS Lambda log inspection; additional metrics and alarms remain optional.
 
 
 
@@ -120,7 +120,7 @@ GitHub Actions is planned for automated testing and build workflows.
 
 
 
-Ansible is planned for configuration management, while CloudFormation will be used for AWS infrastructure provisioning.
+Ansible remains planned for configuration management. CloudFormation has been used to provision the deployed AWS infrastructure.
 
 
 
@@ -128,8 +128,8 @@ Ansible is planned for configuration management, while CloudFormation will be us
 
 
 
-Docker-based application execution, backend tests, and local integration workflows have been implemented and tested. CI/CD, Kubernetes, vulnerability scanning, monitoring, and AWS infrastructure automation remain planned activities.
+Docker-based application execution, backend tests, local integration workflows, AWS deployment, and CloudFormation infrastructure provisioning have been implemented and verified. CI/CD, Kubernetes, vulnerability scanning, Ansible, and the Prometheus/Grafana/Loki monitoring stack remain planned activities.
 
 
 
-No cloud deployment or production CI/CD pipeline is currently active.
+The AWS cloud deployment is active. A production CI/CD pipeline is not currently configured.

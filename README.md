@@ -8,7 +8,7 @@ CareFlow is a containerized clinic appointment and management demonstration plat
 
 CareFlow aims to simplify basic clinic appointment management by providing a centralized platform for patients, doctors, and administrators.
 
-The project demonstrates backend API development, role-based authentication, database integration, containerization, asynchronous event processing, and a proposed AWS cloud deployment architecture.
+The project demonstrates backend API development, role-based authentication, database integration, containerization, asynchronous event processing, and an AWS cloud deployment.
 
 ### Project Objectives
 
@@ -70,7 +70,7 @@ The following tools form the planned DevOps toolset. Tools marked as planned hav
 | Docker | Build and run containers | Implemented and tested |
 | Docker Compose | Manage application containers | Implemented and tested |
 | Apache HTTP Server | Serve frontend and proxy API requests | Implemented and tested |
-| AWS CLI | Manage AWS resources | Installed |
+| AWS CLI | Manage and verify AWS resources | Used |
 | GitHub Actions | CI/CD automation | Planned |
 | Trivy | Container vulnerability scanning | Planned |
 | Ansible | EC2 configuration and deployment automation | Planned |
@@ -79,33 +79,54 @@ The following tools form the planned DevOps toolset. Tools marked as planned hav
 | Prometheus | Metrics collection | Planned |
 | Grafana | Monitoring dashboards | Planned |
 | Loki | Log aggregation | Planned |
-| CloudFormation | Infrastructure as code | Planned |
+| CloudFormation | Infrastructure as code | Used; AWS stacks deployed |
 
 ## 4. AWS Cloud Architecture
 
-The proposed CareFlow cloud architecture uses **12 AWS services, excluding IAM**. IAM is required for identity and access management but is not included in the service count.
+CareFlow has been deployed to AWS in the **us-east-2 (Ohio)** region. The deployment uses CloudFormation, EC2, DynamoDB, SQS, Lambda, S3, CloudWatch, Systems Manager, and IAM.
+
+### AWS Services
 
 | No. | AWS Service | Purpose | Current Status |
 |---:|---|---|---|
-| 1 | Amazon EC2 | Host the containerized CareFlow application | Planned |
-| 2 | Amazon VPC | Provide network isolation and configuration | Planned |
-| 3 | Amazon S3 | Store selected static assets and deployment artefacts | Planned |
-| 4 | Amazon DynamoDB | Store application and event-processing data | Repository implementation and local testing completed |
-| 5 | Amazon SQS | Queue appointment events for asynchronous processing | Dispatcher logic tested locally; AWS integration pending |
-| 6 | AWS Lambda | Process queued appointment events | Handler logic tested locally; AWS deployment pending |
-| 7 | Amazon SNS | Support notification delivery | Planned |
-| 8 | Amazon EventBridge | Support event routing and scheduled automation | Planned |
-| 9 | Amazon CloudWatch | Monitor application logs, metrics, and alarms | Planned |
-| 10 | AWS CloudTrail | Record AWS account activity | Planned |
-| 11 | AWS Systems Manager | Support secure EC2 administration | Planned |
-| 12 | AWS CloudFormation | Provision infrastructure as code | Planned |
+| 1 | Amazon EC2 | Host the containerized CareFlow application | Deployed; t3.micro instance |
+| 2 | Amazon VPC | Provide network isolation | Deployed |
+| 3 | Amazon S3 | Store the Lambda deployment artefact | Deployed; private bucket |
+| 4 | Amazon DynamoDB | Store users, doctors, appointments, and event records | Deployed and integrated |
+| 5 | Amazon SQS | Queue appointment events | Deployed; event delivery verified |
+| 6 | AWS Lambda | Process queued appointment events | Deployed; successful invocation verified |
+| 7 | Amazon SNS | Notification delivery | Planned |
+| 8 | Amazon EventBridge | Event routing and scheduled automation | Planned |
+| 9 | Amazon CloudWatch | Lambda execution logs and monitoring | Deployed; logs verified |
+| 10 | AWS CloudTrail | Record AWS account activity | Not separately configured for this project |
+| 11 | AWS Systems Manager | Secure EC2 administration and port forwarding | Deployed and used |
+| 12 | AWS CloudFormation | Provision AWS infrastructure as code | Deployed; multiple stacks created |
 
-**Note:** This table represents the target AWS architecture. It does not mean all 12 services have been deployed. Current development and testing have been performed locally. AWS resource provisioning will be a separate deployment phase.
+IAM is used for service roles and access permissions and is excluded from the 12-service count.
 
-### IAM
+### Deployed CloudFormation Stacks
 
-AWS IAM will be used to manage permissions and assign least-privilege access to users, EC2 instances, Lambda functions, and other AWS services. IAM is excluded from the 12-service count.
+| Stack | Purpose |
+|---|---|
+| careflow-dynamodb | DynamoDB tables |
+| careflow-sqs | Main event queue and dead-letter queue |
+| careflow-artifacts | Private Lambda artefact bucket |
+| careflow-lambda | Lambda function and SQS event-source mapping |
+| careflow-ec2 | EC2 application host and associated networking |
 
+### Deployment and Access
+
+- AWS region: `us-east-2`
+- EC2 instance type: `t3.micro`
+- Application: Docker Compose with Apache frontend and FastAPI backend
+- Database: Amazon DynamoDB
+- Event transport: Amazon SQS
+- Event consumer: AWS Lambda
+- Administration: AWS Systems Manager Session Manager
+
+The EC2 security group has no inbound rules. The application was accessed through an SSM port-forwarding session rather than opening public application ports.
+
+AWS resource usage can incur charges depending on service usage, account eligibility, and current pricing. Review AWS Billing and Cost Explorer regularly.
 ## 5. Application Architecture
 
 CareFlow follows a layered application structure:
@@ -114,66 +135,67 @@ CareFlow follows a layered application structure:
 2. **Web server:** Apache serves frontend files and forwards API requests.
 3. **Backend:** FastAPI handles authentication, authorization, validation, and application operations.
 4. **Repository layer:** Provides storage interfaces and implementations.
-5. **Database:** DynamoDB stores application records when the DynamoDB backend is selected.
-6. **Event processing:** Outbox and consumer components support asynchronous appointment event processing.
+5. **Database:** DynamoDB stores application records in the AWS deployment.
+6. **Event processing:** An outbox worker dispatches appointment events to SQS, where Lambda processes them.
 
 ### Appointment Event Processing
 
-CareFlow implements an outbox-based event design.
+CareFlow implements an asynchronous event-processing design using a transactional outbox pattern.
 
 - Appointment creation and supported status changes can write an outbox event in the same DynamoDB transaction as the appointment update.
-- The dispatcher claims pending events and sends them to an SQS-compatible client.
-- The Lambda-compatible consumer validates incoming event records.
-- A processed-events repository tracks event IDs to prevent duplicate processing.
-- Failed records can be returned for retry through SQS partial-batch failure handling.
+- The outbox worker claims pending events and sends them to Amazon SQS.
+- The SQS event-source mapping invokes the `CareFlow-EventProcessor` Lambda function.
+- The consumer validates event records and uses the processed-events repository to prevent duplicate processing.
+- Failed records can be retried through SQS partial-batch failure handling.
 
-The dispatcher, handler, and event-processing logic have been tested locally. An actual AWS SQS queue, Lambda function, and event source mapping have not yet been deployed.
+**AWS verification:** The deployed SQS queue, Lambda function, and event-source mapping were checked. A demonstration appointment event was recorded in the outbox and processed-events tables. The queue and dead-letter queue had no messages visible or in flight at the time of verification. CloudWatch showed a successful Lambda invocation with no exception in the supplied execution logs.
 
+This verifies a demonstration event-processing flow; it does not establish production-scale reliability or suitability for real healthcare workloads.
 ## 6. Repository Structure
 
 ```text
 CareFlow/
-â”‚
-â”œâ”€â”€ app/
-â”‚   â”œâ”€â”€ backend/
-â”‚   â”‚   â”œâ”€â”€ careflow_api/
-â”‚   â”‚   â”‚   â”œâ”€â”€ routers/
-â”‚   â”‚   â”‚   â”œâ”€â”€ main.py
-â”‚   â”‚   â”‚   â”œâ”€â”€ storage.py
-â”‚   â”‚   â”‚   â”œâ”€â”€ dynamodb_repositories.py
-â”‚   â”‚   â”‚   â”œâ”€â”€ dynamodb_tables.py
-â”‚   â”‚   â”‚   â”œâ”€â”€ outbox_dispatcher.py
-â”‚   â”‚   â”‚   â”œâ”€â”€ outbox_worker.py
-â”‚   â”‚   â”‚   â”œâ”€â”€ lambda_handler.py
-â”‚   â”‚   â”‚   â””â”€â”€ event_processor.py
-â”‚   â”‚   â”‚
-â”‚   â”‚   â”œâ”€â”€ tests/
-â”‚   â”‚   â”œâ”€â”€ requirements.txt
-â”‚   â”‚   â””â”€â”€ requirements-runtime.txt
-â”‚   â”‚
-â”‚   â””â”€â”€ frontend/
-â”‚       â”œâ”€â”€ apache/
-â”‚       â”‚   â””â”€â”€ httpd.conf
-â”‚       â”œâ”€â”€ app.js
-â”‚       â”œâ”€â”€ index.html
-â”‚       â”œâ”€â”€ styles.css
-â”‚       â””â”€â”€ Dockerfile
-â”‚
-â”œâ”€â”€ docs/
-â”‚   â”œâ”€â”€ architecture.md
-â”‚   â”œâ”€â”€ aws-services.md
-â”‚   â”œâ”€â”€ devops-tools.md
-â”‚   â”œâ”€â”€ local-setup.md
-â”‚   â””â”€â”€ testing.md
-â”‚
-â”œâ”€â”€ tools/
-â”‚   â””â”€â”€ dynamodb-local/
-â”‚
-â”œâ”€â”€ .env.example
-â”œâ”€â”€ .gitignore
-â”œâ”€â”€ Dockerfile
-â”œâ”€â”€ compose.yaml
-â””â”€â”€ README.md
+Ã¢â€â€š
+Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ app/
+Ã¢â€â€š   Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ backend/
+Ã¢â€â€š   Ã¢â€â€š   Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ careflow_api/
+Ã¢â€â€š   Ã¢â€â€š   Ã¢â€â€š   Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ routers/
+Ã¢â€â€š   Ã¢â€â€š   Ã¢â€â€š   Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ main.py
+Ã¢â€â€š   Ã¢â€â€š   Ã¢â€â€š   Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ storage.py
+Ã¢â€â€š   Ã¢â€â€š   Ã¢â€â€š   Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ dynamodb_repositories.py
+Ã¢â€â€š   Ã¢â€â€š   Ã¢â€â€š   Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ dynamodb_tables.py
+Ã¢â€â€š   Ã¢â€â€š   Ã¢â€â€š   Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ outbox_dispatcher.py
+Ã¢â€â€š   Ã¢â€â€š   Ã¢â€â€š   Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ outbox_worker.py
+Ã¢â€â€š   Ã¢â€â€š   Ã¢â€â€š   Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ lambda_handler.py
+Ã¢â€â€š   Ã¢â€â€š   Ã¢â€â€š   Ã¢â€â€Ã¢â€â‚¬Ã¢â€â‚¬ event_processor.py
+Ã¢â€â€š   Ã¢â€â€š   Ã¢â€â€š
+Ã¢â€â€š   Ã¢â€â€š   Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ tests/
+Ã¢â€â€š   Ã¢â€â€š   Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ requirements.txt
+Ã¢â€â€š   Ã¢â€â€š   Ã¢â€â€Ã¢â€â‚¬Ã¢â€â‚¬ requirements-runtime.txt
+Ã¢â€â€š   Ã¢â€â€š
+Ã¢â€â€š   Ã¢â€â€Ã¢â€â‚¬Ã¢â€â‚¬ frontend/
+Ã¢â€â€š       Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ apache/
+Ã¢â€â€š       Ã¢â€â€š   Ã¢â€â€Ã¢â€â‚¬Ã¢â€â‚¬ httpd.conf
+Ã¢â€â€š       Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ app.js
+Ã¢â€â€š       Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ index.html
+Ã¢â€â€š       Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ styles.css
+Ã¢â€â€š       Ã¢â€â€Ã¢â€â‚¬Ã¢â€â‚¬ Dockerfile
+Ã¢â€â€š
+Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ docs/
+Ã¢â€â€š   Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ architecture.md
+Ã¢â€â€š   Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ aws-services.md
+Ã¢â€â€š   Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ devops-tools.md
+Ã¢â€â€š   Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ local-setup.md
+Ã¢â€â€š   Ã¢â€â€Ã¢â€â‚¬Ã¢â€â‚¬ testing.md
+Ã¢â€â€š
+Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ tools/
+Ã¢â€â€š   Ã¢â€â€Ã¢â€â‚¬Ã¢â€â‚¬ dynamodb-local/
+Ã¢â€â€š
+Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ .env.example
+Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ .gitignore
+Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ Dockerfile
+Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ compose.yaml
+Ã¢â€â€Ã¢â€â‚¬Ã¢â€â‚¬ README.md
 ```
 
 ## 7. Project Documentation
@@ -308,7 +330,7 @@ This stops the Compose containers but does not automatically stop the separate D
 
 ## 11. Project Status
 
-### Completed
+### Completed and Verified
 
 - Role-based patient, doctor, and administrator workflows.
 - User registration and authentication.
@@ -316,37 +338,49 @@ This stops the Compose containers but does not automatically stop the separate D
 - Appointment creation, viewing, cancellation, and status updates.
 - FastAPI backend and browser-based frontend.
 - In-memory and DynamoDB repository implementations.
-- DynamoDB outbox and processed-events repository logic.
-- Appointment event dispatcher and Lambda-compatible consumer logic.
-- Backend automated test suite.
+- DynamoDB transactional outbox and processed-events repositories.
+- Outbox dispatcher and worker.
+- Lambda-compatible event consumer.
+- Backend automated test suite: latest recorded run **224 passed**.
 - Dockerfiles for backend and frontend.
 - Apache reverse proxy configuration.
 - Docker Compose deployment.
-- Local end-to-end application testing.
-- Docker end-to-end application testing.
-- Five project documentation files.
+- Local and Docker application testing.
+- AWS CloudFormation infrastructure templates.
+- AWS DynamoDB tables deployed.
+- AWS SQS main queue and dead-letter queue deployed.
+- AWS Lambda function and SQS event-source mapping deployed.
+- Private S3 artefact bucket deployed.
+- EC2 application host deployed.
+- Secure EC2 administration using AWS Systems Manager.
+- Successful demonstration appointment event processing verified through DynamoDB, SQS, and CloudWatch logs.
+- Project documentation.
 
-### Remaining Work
+### Optional Improvements / Not Implemented
 
-- Capture application screenshots.
-- Configure GitHub Actions CI/CD.
-- Integrate Trivy security scanning.
-- Configure Ansible deployment automation.
-- Set up Kind and Helm for local Kubernetes practice.
-- Integrate Prometheus, Grafana, and Loki.
-- Prepare AWS CloudFormation templates.
-- Review AWS security and expected costs.
-- Obtain approval before creating AWS resources.
-- Deploy and test the AWS architecture in a separate phase.
+- GitHub Actions CI/CD pipeline.
+- Trivy container vulnerability scanning.
+- Ansible deployment automation.
+- Kind and Helm local Kubernetes deployment.
+- Prometheus, Grafana, and Loki monitoring stack.
+- SNS notification integration.
+- EventBridge integration.
+- Dedicated CloudTrail project configuration.
+- Public HTTPS access with a domain and TLS certificate.
 
+These are optional extensions and should not be described as completed features.
 ## 12. Important Project Limitations
 
-- CareFlow is a demonstration application, not a production healthcare platform.
-- All user and appointment data must be synthetic.
-- Local DynamoDB testing does not establish that AWS DynamoDB has been deployed.
-- Local dispatcher and Lambda handler tests do not establish that AWS SQS or Lambda has been deployed.
-- Planned DevOps tools and AWS services must not be described as completed until they have been configured and tested.
-
+- CareFlow is an educational demonstration application, not a production healthcare platform.
+- Use synthetic demonstration data only.
+- Do not enter real patient records or sensitive medical information.
+- The application is not intended for diagnosis, treatment, or emergency care.
+- AWS deployment verification demonstrates a working project environment, not production readiness.
+- The EC2 application is accessed through Systems Manager port forwarding; public inbound application access is not configured.
+- SNS, EventBridge, and a dedicated CloudTrail project configuration remain unimplemented.
+- GitHub Actions, Trivy, Ansible, Kubernetes, Helm, Prometheus, Grafana, and Loki remain optional planned improvements.
+- AWS services may incur charges. Free Tier eligibility and available credits vary by account and service.
+- Stop the EC2 instance when it is no longer required for demonstrations. Stopping EC2 does not necessarily eliminate charges for associated storage or other retained resources.
 ## 13. Conclusion
 
 CareFlow demonstrates how a clinic appointment management application can be developed using Python, FastAPI, frontend web technologies, DynamoDB, Docker, and asynchronous event-processing patterns.

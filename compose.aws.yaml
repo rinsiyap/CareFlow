@@ -1,0 +1,78 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env.aws
+    environment:
+      CARE_FLOW_STORAGE_BACKEND: dynamodb
+      AWS_DEFAULT_REGION: us-east-2
+      CARE_FLOW_USERS_TABLE: CareFlow-Users
+      CARE_FLOW_DOCTORS_TABLE: CareFlow-Doctors
+      CARE_FLOW_APPOINTMENTS_TABLE: CareFlow-Appointments
+      CARE_FLOW_OUTBOX_TABLE: CareFlow-Outbox
+      CARE_FLOW_PROCESSED_EVENTS_TABLE: CareFlow-ProcessedEvents
+    expose:
+      - "8000"
+    restart: unless-stopped
+    init: true
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/live', timeout=3)"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  frontend:
+    build:
+      context: ./app/frontend
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    init: true
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  outbox-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env.aws
+    environment:
+      CARE_FLOW_STORAGE_BACKEND: dynamodb
+      AWS_DEFAULT_REGION: us-east-2
+      CARE_FLOW_USERS_TABLE: CareFlow-Users
+      CARE_FLOW_DOCTORS_TABLE: CareFlow-Doctors
+      CARE_FLOW_APPOINTMENTS_TABLE: CareFlow-Appointments
+      CARE_FLOW_OUTBOX_TABLE: CareFlow-Outbox
+      CARE_FLOW_PROCESSED_EVENTS_TABLE: CareFlow-ProcessedEvents
+      CARE_FLOW_OUTBOX_DISPATCH_BATCH_SIZE: "10"
+    command: ["python", "-m", "careflow_api.outbox_worker"]
+    working_dir: /opt/careflow/app/backend
+    profiles:
+      - worker
+    restart: "no"
+    init: true
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
