@@ -1,4 +1,4 @@
-# CareFlow - Clinic Appointment Management Platform
+# CareFlow – Clinic Appointment Management Platform
 
 CareFlow is a containerized clinic appointment and management demonstration platform developed using Python, FastAPI, HTML, CSS, JavaScript, Docker, and AWS technologies. It provides separate workflows for patients, doctors, and administrators.
 
@@ -8,7 +8,7 @@ CareFlow is a containerized clinic appointment and management demonstration plat
 
 CareFlow aims to simplify basic clinic appointment management by providing a centralized platform for patients, doctors, and administrators.
 
-The project demonstrates backend API development, role-based authentication, database integration, containerization, asynchronous event processing, and an AWS cloud deployment.
+The project demonstrates backend API development, role-based authentication, database integration, containerization, asynchronous event processing, and AWS cloud deployment.
 
 ### Project Objectives
 
@@ -21,7 +21,7 @@ The project demonstrates backend API development, role-based authentication, dat
 - Implement database persistence using DynamoDB.
 - Containerize the frontend and backend using Docker.
 - Demonstrate asynchronous event processing using an outbox pattern.
-- Prepare an infrastructure design using AWS services and DevOps tools.
+- Provision AWS infrastructure using CloudFormation.
 
 ## 2. Application Features
 
@@ -60,7 +60,7 @@ The project demonstrates backend API development, role-based authentication, dat
 
 ### DevOps Tools
 
-The following tools form the planned DevOps toolset. Tools marked as planned have not yet been fully integrated into the project.
+The following tools form the project's DevOps toolset. Tools marked as planned have not yet been fully integrated into the project.
 
 | Tool | Purpose | Status |
 |---|---|---|
@@ -127,6 +127,7 @@ IAM is used for service roles and access permissions and is excluded from the 12
 The EC2 security group has no inbound rules. The application was accessed through an SSM port-forwarding session rather than opening public application ports.
 
 AWS resource usage can incur charges depending on service usage, account eligibility, and current pricing. Review AWS Billing and Cost Explorer regularly.
+
 ## 5. Application Architecture
 
 CareFlow follows a layered application structure:
@@ -151,51 +152,69 @@ CareFlow implements an asynchronous event-processing design using a transactiona
 **AWS verification:** The deployed SQS queue, Lambda function, and event-source mapping were checked. A demonstration appointment event was recorded in the outbox and processed-events tables. The queue and dead-letter queue had no messages visible or in flight at the time of verification. CloudWatch showed a successful Lambda invocation with no exception in the supplied execution logs.
 
 This verifies a demonstration event-processing flow; it does not establish production-scale reliability or suitability for real healthcare workloads.
+
 ## 6. Repository Structure
+
+The following tree shows the main application, documentation, and AWS deployment files.
 
 ```text
 CareFlow/
-Ã¢â€â€š
-Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ app/
-Ã¢â€â€š   Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ backend/
-Ã¢â€â€š   Ã¢â€â€š   Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ careflow_api/
-Ã¢â€â€š   Ã¢â€â€š   Ã¢â€â€š   Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ routers/
-Ã¢â€â€š   Ã¢â€â€š   Ã¢â€â€š   Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ main.py
-Ã¢â€â€š   Ã¢â€â€š   Ã¢â€â€š   Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ storage.py
-Ã¢â€â€š   Ã¢â€â€š   Ã¢â€â€š   Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ dynamodb_repositories.py
-Ã¢â€â€š   Ã¢â€â€š   Ã¢â€â€š   Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ dynamodb_tables.py
-Ã¢â€â€š   Ã¢â€â€š   Ã¢â€â€š   Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ outbox_dispatcher.py
-Ã¢â€â€š   Ã¢â€â€š   Ã¢â€â€š   Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ outbox_worker.py
-Ã¢â€â€š   Ã¢â€â€š   Ã¢â€â€š   Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ lambda_handler.py
-Ã¢â€â€š   Ã¢â€â€š   Ã¢â€â€š   Ã¢â€â€Ã¢â€â‚¬Ã¢â€â‚¬ event_processor.py
-Ã¢â€â€š   Ã¢â€â€š   Ã¢â€â€š
-Ã¢â€â€š   Ã¢â€â€š   Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ tests/
-Ã¢â€â€š   Ã¢â€â€š   Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ requirements.txt
-Ã¢â€â€š   Ã¢â€â€š   Ã¢â€â€Ã¢â€â‚¬Ã¢â€â‚¬ requirements-runtime.txt
-Ã¢â€â€š   Ã¢â€â€š
-Ã¢â€â€š   Ã¢â€â€Ã¢â€â‚¬Ã¢â€â‚¬ frontend/
-Ã¢â€â€š       Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ apache/
-Ã¢â€â€š       Ã¢â€â€š   Ã¢â€â€Ã¢â€â‚¬Ã¢â€â‚¬ httpd.conf
-Ã¢â€â€š       Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ app.js
-Ã¢â€â€š       Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ index.html
-Ã¢â€â€š       Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ styles.css
-Ã¢â€â€š       Ã¢â€â€Ã¢â€â‚¬Ã¢â€â‚¬ Dockerfile
-Ã¢â€â€š
-Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ docs/
-Ã¢â€â€š   Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ architecture.md
-Ã¢â€â€š   Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ aws-services.md
-Ã¢â€â€š   Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ devops-tools.md
-Ã¢â€â€š   Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ local-setup.md
-Ã¢â€â€š   Ã¢â€â€Ã¢â€â‚¬Ã¢â€â‚¬ testing.md
-Ã¢â€â€š
-Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ tools/
-Ã¢â€â€š   Ã¢â€â€Ã¢â€â‚¬Ã¢â€â‚¬ dynamodb-local/
-Ã¢â€â€š
-Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ .env.example
-Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ .gitignore
-Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ Dockerfile
-Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ compose.yaml
-Ã¢â€â€Ã¢â€â‚¬Ã¢â€â‚¬ README.md
+|
+|-- app/
+|   |-- backend/
+|   |   |-- careflow_api/
+|   |   |   |-- routers/
+|   |   |   |-- main.py
+|   |   |   |-- storage.py
+|   |   |   |-- dynamodb_repositories.py
+|   |   |   |-- dynamodb_tables.py
+|   |   |   |-- outbox_dispatcher.py
+|   |   |   |-- outbox_worker.py
+|   |   |   |-- lambda_handler.py
+|   |   |   |-- event_processor.py
+|   |   |
+|   |   |-- tests/
+|   |   |-- requirements.txt
+|   |   |-- requirements-runtime.txt
+|   |
+|   |-- frontend/
+|       |-- apache/
+|       |   |-- httpd.conf
+|       |-- app.js
+|       |-- index.html
+|       |-- styles.css
+|       |-- Dockerfile
+|
+|-- docs/
+|   |-- architecture.md
+|   |-- aws-services.md
+|   |-- devops-tools.md
+|   |-- local-setup.md
+|   |-- testing.md
+|
+|-- infrastructure/
+|   |-- cloudformation/
+|   |   |-- dynamodb-tables.yaml
+|   |   |-- sqs-queues.yaml
+|   |   |-- ec2-host.yaml
+|   |   |-- lambda-artifact-bucket.yaml
+|   |   |-- lambda-event-processor.yaml
+|   |
+|   |-- systemd/
+|       |-- careflow-outbox.service
+|       |-- careflow-outbox.timer
+|
+|-- tools/
+|   |-- dynamodb-local/
+|
+|-- .dockerignore
+|-- .env.example
+|-- .env.aws.example
+|-- .gitignore
+|-- Dockerfile
+|-- compose.yaml
+|-- compose.aws.yaml
+|-- README.md
 ```
 
 ## 7. Project Documentation
@@ -227,10 +246,10 @@ Run the backend test suite from the project root:
 ```powershell
 cd C:\dev\CareFlow
 
-.\.venv\Scripts\python.exe -m pytest .\app\backend\tests -v
+.\\.venv\Scripts\python.exe -m pytest .\app\backend\tests -v
 ```
 
-The latest recorded full backend test run completed with **224 passed** on 13 November 2026.
+The latest recorded full backend test run completed with **224 passed** on 16 November 2026.
 
 Run the command again to verify the current code.
 
@@ -366,9 +385,9 @@ This stops the Compose containers but does not automatically stop the separate D
 - SNS notification integration.
 - EventBridge integration.
 - Dedicated CloudTrail project configuration.
-- Public HTTPS access with a domain and TLS certificate.
 
 These are optional extensions and should not be described as completed features.
+
 ## 12. Important Project Limitations
 
 - CareFlow is an educational demonstration application, not a production healthcare platform.
@@ -381,6 +400,7 @@ These are optional extensions and should not be described as completed features.
 - GitHub Actions, Trivy, Ansible, Kubernetes, Helm, Prometheus, Grafana, and Loki remain optional planned improvements.
 - AWS services may incur charges. Free Tier eligibility and available credits vary by account and service.
 - Stop the EC2 instance when it is no longer required for demonstrations. Stopping EC2 does not necessarily eliminate charges for associated storage or other retained resources.
+
 ## 13. Conclusion
 
 CareFlow demonstrates how a clinic appointment management application can be developed using Python, FastAPI, frontend web technologies, DynamoDB, Docker, and asynchronous event-processing patterns.
