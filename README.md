@@ -2,7 +2,6 @@
 
 CareFlow is a containerized clinic appointment and management demonstration platform developed using Python, FastAPI, HTML, CSS, JavaScript, Docker, and AWS technologies. It provides separate workflows for patients, doctors, and administrators.
 
-> **Important:** CareFlow is an educational demonstration project. Use synthetic data only. It is not intended for real patient records, medical diagnosis, treatment, or emergency care.
 
 ## 1. Project Overview
 
